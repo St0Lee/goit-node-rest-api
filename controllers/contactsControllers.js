@@ -82,5 +82,26 @@ export const updateContact = async (req, res, next) => {
     }
 };
 
+export const updateStatusContact = async (req, res, next) => {
+    try{
+        const { id } = req.params;
+        const { favorite, ...data } = req.body;
+        
+        if (Object.keys(data).length !== 0) {
+            throw HttpError(400, "Only the 'favorite' field can be updated");
+        }
+
+        const result = await updateContactById(id, { favorite });
+        if (!result) {
+            throw HttpError(404, "Contact not found");
+        }
+        res.json(result);
+    }
+    catch(error) {
+        next(error);
+    }
+};
+
+
 
 
