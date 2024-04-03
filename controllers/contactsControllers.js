@@ -7,7 +7,7 @@ import {
 } from "../services/contactsServices.js";
 
 import HttpError from "../helpers/HttpError.js";
-import { createContactSchema, updateContactSchema } from "../schemas/contactsSchemas.js";
+import { createContactSchema, updateContactSchema, favoriteContactSchema } from "../schemas/contactsSchemas.js";
 
 export const getAllContacts = async(req, res, next) => {
     try{
@@ -90,7 +90,10 @@ export const updateStatusContact = async (req, res, next) => {
         if (Object.keys(data).length !== 0) {
             throw HttpError(400, "Only the 'favorite' field can be updated");
         }
-
+        const { error } = favoriteContactSchema.validate(req.body);
+        if (error) {
+            throw HttpError(400, error.message);
+        }
         const result = await updateContactById(id, { favorite });
         if (!result) {
             throw HttpError(404, "Contact not found");

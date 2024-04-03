@@ -9,7 +9,7 @@ export const getContactById = id => {
   return data;
 }
 
-export const updateContactById = (id, data) => Contact.findByIdAndUpdate(id, data);
+export const updateContactById = (id, data) => Contact.findByIdAndUpdate(id, data, { new: true });
 
 export const removeContact = id => Contact.findByIdAndDelete(id);
 
