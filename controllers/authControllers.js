@@ -7,24 +7,30 @@ import jwt from "jsonwebtoken";
 
 export const signup = async (req, res, next) => {
     try {
-        const {email, password} = req.body;
-        const user = await userServices.findUser({email});
-        if (user){
+        const { email, password } = req.body;
+
+        if (!password) {
+            throw HttpError(400, "Password is required");
+        }
+
+        const user = await userServices.findUser({ email });
+        if (user) {
             throw HttpError(409, "Email in use");
         }
-        else{
-        const {error} = userSingInUpSchema.validate(req.body);
-        if(error) {
+
+        const { error } = userSingInUpSchema.validate(req.body);
+        if (error) {
             throw HttpError(400, error.message);
         }
-        }
 
-        const hashPassword = await bcrypt.hash(password, 10)
+        const hashPassword = await bcrypt.hash(password, 10);
 
-        const newUser = await userServices.signup({...req.body, password: hashPassword});
+        const newUser = await userServices.signup({ ...req.body, password: hashPassword });
         res.status(201).json({
-            email: newUser.email,
-            subscription: newUser.subscription,
+            user: {
+                email: newUser.email,
+                subscription: newUser.subscription,
+            }
         });
     } catch (error) {
         next(error);
@@ -84,7 +90,5 @@ export const signout = async(req, res) => {
     const {_id} = req.user;
     await userServices.updateUser({_id}, {token: ""});
 
-    res.json({
-        message: "Signed Out"
-    })
+    res.status(204).json()
 };
