@@ -106,7 +106,7 @@ export const updateStatusContact = async (req, res, next) => {
         if (error) {
             throw HttpError(400, error.message);
         }
-        const result = await updateContactByFilter(id, { favorite });
+        const result = await updateContactByFilter({owner, _id: id}, { favorite });
         if (!result) {
             throw HttpError(404, "Contact not found");
         }
