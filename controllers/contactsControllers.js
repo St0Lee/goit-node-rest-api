@@ -97,7 +97,7 @@ export const updateContact = async (req, res, next) => {
 export const updateStatusContact = async (req, res, next) => {
     try{
         const { id } = req.params;
-        const { favorite, ...data } = req.body;
+        const { favorite, _id:owner, ...data } = req.body;
         
         if (Object.keys(data).length !== 0) {
             throw HttpError(400, "Only the 'favorite' field can be updated");
