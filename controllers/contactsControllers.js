@@ -76,6 +76,7 @@ export const createContact = async (req, res, next) => {
 export const updateContact = async (req, res, next) => {
     try {
         const {_id: owner} = req.user;
+
         if (!req.body || Object.keys(req.body).length === 0) {
             throw HttpError(400, "Body must have at least one field");
         }
@@ -97,8 +98,11 @@ export const updateContact = async (req, res, next) => {
 export const updateStatusContact = async (req, res, next) => {
     try{
         const { id } = req.params;
-        const { favorite, _id:owner, ...data } = req.body;
-        
+       
+        const { favorite, ...data } = req.body;
+
+        const {_id: owner} = req.user;
+
         if (Object.keys(data).length !== 0) {
             throw HttpError(400, "Only the 'favorite' field can be updated");
         }
