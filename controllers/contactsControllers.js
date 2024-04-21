@@ -1,3 +1,6 @@
+import fs from "fs/promises";
+import path from "path";
+
 import {
     listContacts,
     getContactByFilter,
@@ -9,6 +12,8 @@ import {
 
 import HttpError from "../helpers/HttpError.js";
 import { createContactSchema, updateContactSchema, favoriteContactSchema } from "../schemas/contactsSchemas.js";
+
+const avatarPath = path.resolve("public", "avatars");
 
 export const getAllContacts = async(req, res, next) => {
     try{
@@ -61,11 +66,16 @@ export const deleteContact = async (req, res, next) => {
 export const createContact = async (req, res, next) => {
     try {
         const {_id: owner} = req.user;
+        const {path: oldPath, filename} = req.file;
+        const newPath = path.join(avatarPath, filename);
+        await fs.rename(oldPath, newPath);
+
+        const avatarURL = path.join("avatars", filename);
         const {error} = createContactSchema.validate(req.body);
         if(error) {
             throw HttpError(400, error.message);
         }
-        const result = await addContact({...req.body, owner});
+        const result = await addContact({...req.body, avatarURL, owner});
         res.status(201).json(result);
     }
     catch(error) {
