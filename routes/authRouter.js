@@ -17,6 +17,6 @@ authRouter.post("/register", signup);
 authRouter.post("/login", signin);
 authRouter.get("/current", authenticate, getCurrent);
 authRouter.post("/logout", authenticate, signout);
-authRouter.patch("/avatars", upload.single("avatar"), updateAvatar)
+authRouter.patch("/avatars", authenticate, upload.single("avatar"), updateAvatar)
 
 export default authRouter;
