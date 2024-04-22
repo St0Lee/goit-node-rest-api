@@ -81,7 +81,6 @@ export const signin = async (req, res) => {
 
 export const getCurrent = async(req, res) => {
     const {email, subscription} = req.user;
-
     res.json({
         email,
         subscription,
@@ -92,6 +91,7 @@ export const updateAvatar = async (req, res) => {
     try {
         const { path: oldPath, filename } = req.file;
         const newPath = path.join(avatarPath, filename);
+        const {_id} = req.user
 
         await fs.rename(oldPath, newPath);
 
@@ -100,14 +100,19 @@ export const updateAvatar = async (req, res) => {
 
         const avatarURL = path.join("avatars", filename);
 
+        await userServices.updateUser({_id} ,{ avatarURL });
+
         res.status(200).json({ avatarURL });
     } catch (error) {
+        console.error(error);
         res.status(401).json({ message: "Failed to update avatar" });
     }
 };  
 
+
 export const signout = async(req, res) => {
     const {_id} = req.user;
+    console.log(req.user)
     await userServices.updateUser({_id}, {token: ""});
 
     res.status(204).json()
