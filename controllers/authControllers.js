@@ -1,6 +1,7 @@
 import HttpError from "../helpers/HttpError.js";
 import { userSingInUpSchema } from "../schemas/usersSchemas.js";
 import * as userServices from "../services/authServices.js";
+import { emailCallback } from "../helpers/sendEmail.js";
 
 import gravatar from "gravatar";
 import bcrypt from "bcrypt";
@@ -8,6 +9,7 @@ import jwt from "jsonwebtoken";
 import fs from "fs/promises";
 import path from "path";
 import Jimp from "jimp";
+import { nanoid } from "nanoid";
 
 const avatarPath = path.resolve("public", "avatars");
 
@@ -32,7 +34,17 @@ export const signup = async (req, res, next) => {
 
         const hashPassword = await bcrypt.hash(password, 10);
 
-        const newUser = await userServices.signup({ ...req.body, avatarURL: avatarURL, password: hashPassword });
+        const verificationToken = nanoid();
+
+        const newUser = await userServices.signup({ 
+            ...req.body, 
+            avatarURL: avatarURL, 
+            password: hashPassword, 
+            verificationToken: verificationToken 
+        });
+
+        await emailCallback(newUser, verificationToken);
+
         res.status(201).json({
             user: {
                 email: newUser.email,
