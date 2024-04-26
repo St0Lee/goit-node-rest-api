@@ -1,6 +1,7 @@
 import HttpError from "../helpers/HttpError.js";
-import { userSingInUpSchema } from "../schemas/usersSchemas.js";
+import { userSingInUpSchema, userEmailSchema } from "../schemas/usersSchemas.js";
 import * as userServices from "../services/authServices.js";
+import sendEmail from "../helpers/sendEmail.js";
 
 import gravatar from "gravatar";
 import bcrypt from "bcrypt";
@@ -8,8 +9,11 @@ import jwt from "jsonwebtoken";
 import fs from "fs/promises";
 import path from "path";
 import Jimp from "jimp";
+import { nanoid } from "nanoid";
 
 const avatarPath = path.resolve("public", "avatars");
+
+const {JWT_SECRET, OWN_WEBSITE_URL} = process.env;
 
 export const signup = async (req, res, next) => {
     try {
@@ -32,7 +36,18 @@ export const signup = async (req, res, next) => {
 
         const hashPassword = await bcrypt.hash(password, 10);
 
-        const newUser = await userServices.signup({ ...req.body, avatarURL: avatarURL, password: hashPassword });
+        const verificationToken = nanoid();
+        
+        const newUser = await userServices.signup({ ...req.body, avatarURL: avatarURL, password: hashPassword, verificationToken });
+        
+        const verifyEmail = {
+            to: "fasito7845@togito.com",
+            subject: "Verify Email",
+            html: `<a target="_blank" href="${OWN_WEBSITE_URL}/users/verify/${verificationToken}">Click to verify email</a>`
+        }
+    
+        await sendEmail(verifyEmail)
+        
         res.status(201).json({
             user: {
                 email: newUser.email,
@@ -44,31 +59,81 @@ export const signup = async (req, res, next) => {
     }
 };
 
-const {JWT_SECRET} = process.env;
+export const verifyEmail = async(req, res, next) => {
+    try{const {verificationToken} = req.params;
+    const user = await userServices.findUser({verificationToken});
+    if(!user) {
+        throw HttpError( 404, "User not found");
+    };
 
-export const signin = async (req, res) => {
-        const {email, password} = req.body;
-        const user = await userServices.findUser({email});
-        const {error} = userSingInUpSchema.validate(req.body);
-        if(error) {
+    await userServices.updateUser({_id: user._id}, {verify: true, verificationToken: ""});
+
+    res.status(200).json({
+        message: "Verification successful"
+        })
+    }
+    catch (error) {
+        next(error);
+    }
+};
+
+export const resendVerification = async(req, res, next) => {
+    try{
+        const { error, value } = userEmailSchema.validate(req.body);
+        if (error) {
             throw HttpError(400, error.message);
         }
+
+        const {email} = value;
+
+        const user = await userServices.findUser({email});
         if(!user){
+            throw HttpError (404, "Email not found")
+        }
+        
+        if(user.verify) {
+            throw HttpError (400, "Verification has already been passed")
+        }
+
+        const verifyEmail = {
+            to: "fasito7845@togito.com",
+            subject: "Verify Email",
+            html: `<a target="_blank" href="${OWN_WEBSITE_URL}/users/verify/${user.verificationToken}">Click to verify email</a>`
+        }
+    
+        await sendEmail(verifyEmail)
+
+        res.status(200).json({
+            message: "Verification email sent"
+        })
+    }
+    catch (error) {
+        next(error);
+    }
+};
+
+export const signin = async (req, res, next) => {
+    try {
+        const { email, password } = req.body;
+        const user = await userServices.findUser({ email });
+        
+        if (!user) {
             throw HttpError(401, "Email or password is wrong");
         }
+
+        if (!user.verify) {
+            throw HttpError(401, "Email is not verified");
+        }
+
         const passwordCompare = await bcrypt.compare(password, user.password);
-        if(!passwordCompare){
+        if (!passwordCompare) {
             throw HttpError(401, "Email or password is wrong");
         }
 
         const {_id: id} = user;
-
-        const payload = {
-            id
-        };
-
-        const token = jwt.sign(payload, JWT_SECRET, {expiresIn: "72h"});
-        await userServices.updateUser({_id: id}, {token});
+        const payload = { id };
+        const token = jwt.sign(payload, JWT_SECRET, { expiresIn: "72h" });
+        await userServices.updateUser({ _id: id }, { token });
 
         res.json({
             token: token,
@@ -76,8 +141,11 @@ export const signin = async (req, res) => {
                 email: user.email,
                 subscription: user.subscription,
             }
-        })
-    };
+        });
+    } catch (error) {
+        next(error);
+    }
+};
 
 export const getCurrent = async(req, res) => {
     const {email, subscription} = req.user;
