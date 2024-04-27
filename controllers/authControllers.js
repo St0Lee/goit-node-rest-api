@@ -37,6 +37,7 @@ export const signup = async (req, res, next) => {
         const hashPassword = await bcrypt.hash(password, 10);
 
         const verificationToken = nanoid();
+
         
         const newUser = await userServices.signup({ ...req.body, avatarURL: avatarURL, password: hashPassword, verificationToken });
         
