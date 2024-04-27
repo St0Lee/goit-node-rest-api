@@ -96,7 +96,7 @@ export const resendVerification = async(req, res, next) => {
         }
 
         const verifyEmail = {
-            to: "fasito7845@togito.com",
+            to: email,
             subject: "Verify Email",
             html: `<a target="_blank" href="${OWN_WEBSITE_URL}/users/verify/${user.verificationToken}">Click to verify email</a>`
         }
